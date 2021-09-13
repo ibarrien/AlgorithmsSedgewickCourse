@@ -19,6 +19,7 @@ public class QuickFindUF {
     }
 
     public void union(int p, int q) {
+        // find all lets in component of p and link them to q
         int src = id[p];
         int target = id[q];
         for (int i = 0; i < id.length; i++) {
