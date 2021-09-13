@@ -12,8 +12,6 @@ public class ExampleRuns {
         for (int k = 0; k < id_len - 1; k++) {
             uf.union(k, k + 1);
             wtd_uf.union(k, k + 1);
-
-
         }
         System.out.println("New union find id:");
         System.out.println(Arrays.toString(uf.getId()));
