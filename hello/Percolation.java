@@ -18,9 +18,9 @@ public class Percolation {
     public Percolation(int n) {
         N = n;
         top_site_val = 0; // val of top size, grid starts at row=1
-        bottom_site_val = n + 1;  // val of bottom site
+        bottom_site_val = (int) (Math.pow(n, 2) + 1);  // val of bottom site
         int this_loc; // current 1d site location in loop
-        int num_sites = (n * n) + 2;  // 0 to N^2 + 1 indexing; first, last=virtual
+        int num_sites = (int) Math.pow(n, 2) + 2;  // 0 to N^2 + 1 indexing; first, last=virtual
 
         // CREATE THE GRID
         // use extra row and col for 1-based indexing when calling grid sites
@@ -49,15 +49,27 @@ public class Percolation {
         }
     }
 
+    // is the site (row, col) open?
+    public boolean isOpen(int row, int col) {
+        return grid[row][col] == 1;
+    }
+
     //one-to-one monotone mapping from 2d to 1d
     private int xyto1D(int r, int c) {
         return (N * (r - 1)) + c;
 
     }
 
-    // is the site (row, col) open?
-    public boolean isOpen(int row, int col) {
-        return grid[row][col] == 1;
+    public void print_curr_roots() {
+        for (int i = 1; i <= N; i++) {
+            for (int j = 1; j <= N; j++) {
+                int this_loc = xyto1D(i, j);
+                boolean this_loc_open = isOpen(i, j);
+                System.out.format("Loc (%d, %d) has 1d = %d, is_open=%s, "
+                                          + "UFRoot=%d\n",
+                                  i, j, this_loc, this_loc_open, uf.find(this_loc));
+            }
+        }
     }
 
 
@@ -121,6 +133,7 @@ public class Percolation {
     public static void main(String[] args) {
         //TODO: start with n = 2; should produce grid of dim 3 x 3
         Percolation myPerc = new Percolation(3);
+        myPerc.print_curr_roots();
         int a_loc = myPerc.xyto1D(1, 1);
         int b_loc = myPerc.xyto1D(2, 1);
         System.out.println("Ininitializing Percolation...");
@@ -143,6 +156,11 @@ public class Percolation {
         int root_b = myPerc.uf.find(b_loc);
         System.out.format("Root of (1,1) is %d\n", root_a);
         System.out.format("Root of (2,1) is %d\n", root_b);
-        System.out.format("Does it percolate? : %s", myPerc.percolates());
+        System.out.format("Does it percolate? : %s\n", myPerc.percolates());
+        System.out.println("Opening site (3,3)");
+        myPerc.open(3, 3);
+        System.out.format("Does it percolate? : %s\n", myPerc.percolates());
+        myPerc.print_curr_roots();
+
     }
 }
