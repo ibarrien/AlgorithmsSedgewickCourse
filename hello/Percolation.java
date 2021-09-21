@@ -8,6 +8,7 @@ import edu.princeton.cs.algs4.WeightedQuickUnionUF;
 
 public class Percolation {
     private int N;
+    private int num_open_sites; // number of non-virtual open sites
     private int[][] grid;
     private WeightedQuickUnionUF uf;
     private int top_site_val;  // virtual site at top of grid
@@ -17,19 +18,18 @@ public class Percolation {
     // creates n-by-n grid, with all sites initially blocked
     public Percolation(int n) {
         N = n;
+        num_open_sites = 0;
         top_site_val = 0; // val of top size, grid starts at row=1
         bottom_site_val = (int) (Math.pow(n, 2) + 1);  // val of bottom site
         int this_loc; // current 1d site location in loop
         int num_sites = (int) Math.pow(n, 2) + 2;  // 0 to N^2 + 1 indexing; first, last=virtual
 
-        // CREATE THE GRID
+        // CREATE THE GRID (does not include virtual sites)
         // use extra row and col for 1-based indexing when calling grid sites
         // e.g. for opening and calls to union find
-        // do not write int grid [][] = new int
-        // ... since already instance var!
         grid = new int[n + 1][n + 1];
 
-        //Initializes an empty union-find data structure with n elements 0 through n-1.
+        //Initializes union-find data structure
         uf = new WeightedQuickUnionUF(num_sites); //id[i] = i
         // initialize virtual site
         for (int i = 1; i <= n; i++) {
@@ -49,37 +49,47 @@ public class Percolation {
         }
     }
 
+    // returns the number of open sites
+    public int numberOfOpenSites() {
+        //If you have a for loop inside of one of your Percolation methods,
+        // you're probably doing it wrong
+        // TODO: alternative of counting num distinct roots in UnionFind struct?
+        return num_open_sites;
+    }
+
+    public void check_valid_row_col(int row, int col) {
+        // Your code should not attempt to catch any exceptions
+        // this will interfere with our grading scripts.
+        if (row <= 0 || row > N)
+            throw new IndexOutOfBoundsException("row index " + row + " out of bounds");
+        if (col <= 0 || col > N)
+            throw new IndexOutOfBoundsException("col index " + col + " out of bounds");
+
+    }
+
     // is the site (row, col) open?
     public boolean isOpen(int row, int col) {
+        check_valid_row_col(row, col);
         return grid[row][col] == 1;
     }
 
     //one-to-one monotone mapping from 2d to 1d
-    private int xyto1D(int r, int c) {
-        return (N * (r - 1)) + c;
+    private int xyto1D(int row, int col) {
+        check_valid_row_col(row, col);
+        return (N * (row - 1)) + col;
 
     }
-
-    public void print_curr_roots() {
-        for (int i = 1; i <= N; i++) {
-            for (int j = 1; j <= N; j++) {
-                int this_loc = xyto1D(i, j);
-                boolean this_loc_open = isOpen(i, j);
-                System.out.format("Loc (%d, %d) has 1d = %d, is_open=%s, "
-                                          + "UFRoot=%d\n",
-                                  i, j, this_loc, this_loc_open, uf.find(this_loc));
-            }
-        }
-    }
-
 
     // opens the site (row, col) if it is not open already
     public void open(int row, int col) {
-        // TODO: implement check for valid row, cal pair on "true grid"
         // recall n^2-many "true" sites live on [1...N] x [1...N]
         // at most 4 calls to union
         // open the site
-        grid[row][col] = 1;
+        check_valid_row_col(row, col);
+        if (grid[row][col] == 0) {
+            grid[row][col] = 1;
+            num_open_sites++;
+        }
         int this_loc = xyto1D(row, col);
         //check up neighbor
         if (row > 1 && isOpen(row - 1, col)) {
@@ -110,32 +120,55 @@ public class Percolation {
         /*  A full site is an open site that can be connected to an open site
         in the top row via a chain of neighboring (left, right, up, down) open
         sites.
-        We say the system percolates if there is a full site in the bottom row
          */
-
+        check_valid_row_col(row, col);
+        if (!isOpen(row, col)) {
+            return false;
+        }
         int this_loc = xyto1D(row, col);
+        // TODO: add two conditions to prevent backwash
+        // if (row, col) is bottom site -> is it connected to a full bottom site?
         return uf.find(this_loc) == uf.find(top_site_val);
 
     }
 
-    // returns the number of open sites
-    public int numberOfOpenSites() {
-        //TODO
-        return 0;
-    }
-
     // does the system percolate?
     public boolean percolates() {
+        // We say the system percolates if there is a full site in the bottom row
         return uf.find(top_site_val) == uf.find(bottom_site_val);
+    }
+
+    public void print_curr_roots() {
+        for (int i = 1; i <= N; i++) {
+            for (int j = 1; j <= N; j++) {
+                int this_loc = xyto1D(i, j);
+                boolean this_loc_open = isOpen(i, j);
+                System.out.format("Loc (%d, %d) has 1d = %d, is_open=%s, "
+                                          + "UFRoot=%d\n",
+                                  i, j, this_loc, this_loc_open, uf.find(this_loc));
+            }
+        }
     }
 
     // test client (optional)
     public static void main(String[] args) {
         //TODO: start with n = 2; should produce grid of dim 3 x 3
         Percolation myPerc = new Percolation(3);
-        myPerc.print_curr_roots();
-        int a_loc = myPerc.xyto1D(1, 1);
-        int b_loc = myPerc.xyto1D(2, 1);
+        // myPerc.print_curr_roots();
+        System.out.format("Num open sites %d\n", myPerc.numberOfOpenSites());
+        System.out.format("Check site (3,3) is full: %s\n", myPerc.isFull(3, 3));
+        myPerc.open(3, 3);
+        myPerc.open(1, 1);
+        myPerc.open(2, 1);
+        myPerc.open(3, 1);  // should be false...consider two union find structs?
+        // if a bottom site is full, create its own union find struct?
+        // WANT: check if any bottom *direct* neighbors are properly full
+        // or at least open
+        // IDEA: maintain one union_find bottom and one union_find top
+        System.out.format("Check site (3,3) is full: %s\n", myPerc.isFull(3, 3));
+
+
+        /*
         System.out.println("Ininitializing Percolation...");
         System.out.println("Num real sites:");
         System.out.println(myPerc.N);
@@ -148,8 +181,10 @@ public class Percolation {
         myPerc.open(1, 1);
         System.out.println("Check site (1,1) is open: ");
         System.out.println(myPerc.isOpen(1, 1));
+        System.out.format("Num open sites %d\n", myPerc.numberOfOpenSites());
         System.out.println("Opening site (2,1)");
         myPerc.open(2, 1);
+        System.out.format("Num open sites %d\n", myPerc.numberOfOpenSites());
         System.out.println("Check site (1,1) and (2,1) connected: ");
 
         int root_a = myPerc.uf.find(a_loc);
@@ -157,10 +192,19 @@ public class Percolation {
         System.out.format("Root of (1,1) is %d\n", root_a);
         System.out.format("Root of (2,1) is %d\n", root_b);
         System.out.format("Does it percolate? : %s\n", myPerc.percolates());
-        System.out.println("Opening site (3,3)");
-        myPerc.open(3, 3);
+        System.out.println("Opening site (3,2)");
+        myPerc.open(3, 2);
         System.out.format("Does it percolate? : %s\n", myPerc.percolates());
-        myPerc.print_curr_roots();
+        //myPerc.print_curr_roots();
+        System.out.println("Opening site (2,2)");
+        myPerc.open(2, 2);
+        System.out.format("Does it percolate? : %s\n", myPerc.percolates());
+        //myPerc.print_curr_roots();
+        System.out.format("Num open sites %d\n", myPerc.numberOfOpenSites());
 
+        System.out.println("Try Opening illegal site (1,4)");
+        myPerc.open(1, 4);
+
+         */
     }
 }
