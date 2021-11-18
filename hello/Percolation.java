@@ -11,6 +11,7 @@ public class Percolation {
     private int num_open_sites; // number of non-virtual open sites
     private int[][] grid;
     private WeightedQuickUnionUF uf;
+    private WeightedQuickUnionUF uf_helper;
     private int top_site_val;  // virtual site at top of grid
     private int bottom_site_val;  // virtual site at bottom of grid
 
@@ -23,14 +24,15 @@ public class Percolation {
         bottom_site_val = (int) (Math.pow(n, 2) + 1);  // val of bottom site
         int this_loc; // current 1d site location in loop
         int num_sites = (int) Math.pow(n, 2) + 2;  // 0 to N^2 + 1 indexing; first, last=virtual
-
+        int num_real_sites = (int) Math.pow(n, 2);
         // CREATE THE GRID (does not include virtual sites)
         // use extra row and col for 1-based indexing when calling grid sites
         // e.g. for opening and calls to union find
         grid = new int[n + 1][n + 1];
 
-        //Initializes union-find data structure
+        //Initializes union-find data structures
         uf = new WeightedQuickUnionUF(num_sites); //id[i] = i
+        uf_helper = new WeightedQuickUnionUF(num_real_sites);
         // initialize virtual site
         for (int i = 1; i <= n; i++) {
             for (int j = 1; j <= n; j++) {
@@ -121,6 +123,8 @@ public class Percolation {
         in the top row via a chain of neighboring (left, right, up, down) open
         sites.
          */
+        boolean bottom_left_check = true;
+        boolean bottom_right_check = true;
         check_valid_row_col(row, col);
         if (!isOpen(row, col)) {
             return false;
@@ -128,9 +132,38 @@ public class Percolation {
         int this_loc = xyto1D(row, col);
         // TODO: add two conditions to prevent backwash
         // if (row, col) is bottom site -> is it connected to a full bottom site?
-        return uf.find(this_loc) == uf.find(top_site_val);
+        if (row == N) {
+            if (isFull(N - 1, col)) {
+                return true;
+            }
+            //look left of this bottom site
+            if (col > 1) {
+                if (col - 1 > 1) {
+                    bottom_left_check = isFull(row, col - 1);
+                }
+                else {
+                    int left_loc = xyto1D(row, col - 1);
+                    bottom_left_check = uf_helper.find(left_loc) == uf_helper.find(this_loc);
+                }
+                // look right of this bottom site
+                if (col < N) {
+                    if (col + 1 < N) {
+                        bottom_right_check = isFull(row, col + 1);
+                    }
+                    else {
+                        int right_loc = xyto1D(row, col + 1);
+                        bottom_right_check = uf_helper.find(right_loc) == uf_helper.find(this_loc);
+                    }
+                }
+
+            }
+
+        }
+        boolean bottom_check = bottom_left_check && bottom_right_check;
+        return uf.find(this_loc) == uf.find(top_site_val) && bottom_check;
 
     }
+
 
     // does the system percolate?
     public boolean percolates() {
@@ -166,6 +199,10 @@ public class Percolation {
         // or at least open
         // IDEA: maintain one union_find bottom and one union_find top
         System.out.format("Check site (3,3) is full: %s\n", myPerc.isFull(3, 3));
+        System.out.format("Check site (3,1) is full: %s\n", myPerc.isFull(3, 1));
+        System.out.format("Num open sites %d\n", myPerc.numberOfOpenSites());
+
+
 
 
         /*
